@@ -1,7 +1,7 @@
 import { time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { anyValue } from '@nomicfoundation/hardhat-chai-matchers/withArgs'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
+import { ElectoralCommission } from '../typechain-types'
 
 const ONE_DAY_IN_SECS = 24 * 60 * 60
 const TWO_DAYS_IN_SECS = 2 * ONE_DAY_IN_SECS
@@ -15,6 +15,18 @@ describe('ElectoralCommission', function () {
     const electoralCommission = await ElectoralCommission.deploy()
 
     return { owner, electoralCommission, otherAccount }
+  }
+
+  async function createElectionFromFixture(electoralCommission: ElectoralCommission) {
+    const latest = await time.latest()
+    const tx = await electoralCommission.createElection(
+      'Name',
+      'Post',
+      latest + ONE_DAY_IN_SECS,
+      latest + TWO_DAYS_IN_SECS
+    )
+
+    await tx.wait()
   }
 
   describe('Deployment', function () {
@@ -96,8 +108,50 @@ describe('ElectoralCommission', function () {
             latest + ONE_DAY_IN_SECS,
             latest + TWO_DAYS_IN_SECS
           )
-        ).to.emit(electoralCommission, 'ElectionCreated')
+        )
+        .to.emit(electoralCommission, 'ElectionCreatedEvent')
       })
+
+      it('should add electionId to electionIds', async function () {
+        const { electoralCommission } = await loadFixture(
+          deployElectoralCommissionFixture
+        )
+        await createElectionFromFixture(electoralCommission)
+         expect((await electoralCommission.electionIds(0)).eq(1)).to.be.true
+      })
+
+      it('should create election with right details', async function () {
+        const latest = await time.latest()
+        const { electoralCommission } = await loadFixture(
+          deployElectoralCommissionFixture
+        )
+        const name = 'Test Name'
+        const post = 'Test Post'
+        const startDate = latest + ONE_DAY_IN_SECS
+        const endDate = latest + TWO_DAYS_IN_SECS
+        const tx = await electoralCommission.createElection(name, post, startDate, endDate)
+        await tx.wait()
+        const election = await electoralCommission.elections(1)
+        expect(election.name).to.equal(name)
+        expect(election.postName).to.equal(post)
+        expect(election.startDate.eq(startDate)).to.be.true
+        expect(election.endDate.eq(endDate)).to.be.true
+      })
+    })
+  })
+
+  describe('AddCandidate', function() {
+    it('should increment candidateCounter', async function () {
+      const { electoralCommission } = await loadFixture(
+        deployElectoralCommissionFixture
+      )
+      await createElectionFromFixture(electoralCommission)
+      const electionId = await electoralCommission.electionIds(0)
+      electoralCommission.addCandidate(electionId, "Candidate 1")
+      expect((await electoralCommission.candidateCounter()).gt(0)).to.be.true
+
+      const election = await electoralCommission.elections(electionId)
+      console.log(election)
     })
   })
 })

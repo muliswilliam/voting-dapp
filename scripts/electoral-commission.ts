@@ -9,7 +9,7 @@ async function main() {
   const tx = await electoralCommission.createElection("Chairperson Election 2023", "Chairperson", Date.now(), endTime)
   const receipt = await tx.wait()
   
-  electoralCommission.on('ElectionCreated', (electionId) => {
+  electoralCommission.on('ElectionCreatedEvent', (electionId) => {
     console.log({ electionId: electionId })
   })
 }
