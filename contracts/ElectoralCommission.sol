@@ -2,9 +2,9 @@
 pragma solidity ^0.8.9;
 
 struct Candidate {
-  uint256 id;
-  string name;
-  uint256 voteCount;
+    uint256 id;
+    string name;
+    uint256 voteCount;
 }
 
 struct Election {
@@ -45,7 +45,7 @@ contract ElectoralCommission {
     event CandidateAddedEvent(uint256 electionId, Candidate candidate);
 
     constructor() {
-      owner = msg.sender;
+        owner = msg.sender;
     }
 
     function createElection(
@@ -58,7 +58,10 @@ contract ElectoralCommission {
             _startDate > block.timestamp,
             "Election starting date must be in the future"
         );
-        require(_endDate > block.timestamp, "Election ending date must be in the future");
+        require(
+            _endDate > block.timestamp,
+            "Election ending date must be in the future"
+        );
         require(
             _endDate > _startDate,
             "Election ending date must be later than starting date"
@@ -78,12 +81,26 @@ contract ElectoralCommission {
     }
 
     function addCandidate(uint256 _electionId, string memory _name) public {
-      candidateCounter++;
+        candidateCounter++;
 
-      mapping(uint256 => Candidate) storage candidateMap = candidates[_electionId];
-      Candidate memory newCandidate = Candidate({ id: candidateCounter, name: _name, voteCount: 0 });
-      candidateMap[candidateCounter] = newCandidate;
-      candidateIds[_electionId].push(candidateCounter);
-      emit CandidateAddedEvent(_electionId, newCandidate);
+        mapping(uint256 => Candidate) storage candidateMap = candidates[
+            _electionId
+        ];
+        Candidate memory newCandidate = Candidate({
+            id: candidateCounter,
+            name: _name,
+            voteCount: 0
+        });
+        candidateMap[candidateCounter] = newCandidate;
+        candidateIds[_electionId].push(candidateCounter);
+        emit CandidateAddedEvent(_electionId, newCandidate);
+    }
+
+    function getElections() public view returns (Election[] memory) {
+        Election[] memory _elections = new Election[](electionCounter);
+        for (uint i = 0; i < electionIds.length; i++) {
+            _elections[i] = elections[electionIds[i]];
+        }
+        return _elections;
     }
 }
