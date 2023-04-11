@@ -156,7 +156,6 @@ describe('ElectoralCommission', function () {
         )
         const startDate = latest + ONE_DAY_IN_SECS
         const endDate = latest + TWO_DAYS_IN_SECS
-        console.log({ startDate, endDate })
         electoralCommission.createElection(
           'Name',
           'Post',
