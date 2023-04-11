@@ -36,13 +36,15 @@ contract ElectoralCommission {
     // array of electionIds
     uint256[] public electionIds;
     // map between a electionId and a mapping of candidateId => Candidate struct
-    mapping(uint256 => mapping(uint256 => Candidate)) public candidates;
+    mapping(uint256 => Candidate[]) public candidates;
     // electionId => candidateId[]
     mapping(uint256 => uint256[]) public candidateIds;
+    mapping(uint256 => mapping(address => bool)) hasVoted;
 
     // events
     event ElectionCreatedEvent(uint256 electionId);
     event CandidateAddedEvent(uint256 electionId, Candidate candidate);
+    event VotedEvent(uint256 electionId, Candidate candidate);
 
     constructor() {
         owner = msg.sender;
@@ -81,17 +83,18 @@ contract ElectoralCommission {
     }
 
     function addCandidate(uint256 _electionId, string memory _name) public {
-        candidateCounter++;
+        Election memory election = elections[_electionId];
+        require(block.timestamp < election.startDate, "Can't add candidate after election starting date");
+        require(block.timestamp < election.endDate, "Can't add candidate to an election after it is concluded");
 
-        mapping(uint256 => Candidate) storage candidateMap = candidates[
-            _electionId
-        ];
+        candidateCounter++;
+        Candidate[] storage candidateList = candidates[_electionId];
         Candidate memory newCandidate = Candidate({
             id: candidateCounter,
             name: _name,
             voteCount: 0
         });
-        candidateMap[candidateCounter] = newCandidate;
+        candidateList.push(newCandidate);
         candidateIds[_electionId].push(candidateCounter);
         emit CandidateAddedEvent(_electionId, newCandidate);
     }
@@ -102,5 +105,26 @@ contract ElectoralCommission {
             _elections[i] = elections[electionIds[i]];
         }
         return _elections;
+    }
+
+    function getElectionCandidates(
+        uint256 electionId
+    ) public view returns (Candidate[] memory) {
+        return candidates[electionId];
+    }
+
+    function vote(uint256 _electionId, uint256 _candidateId) public {
+      Election memory election = elections[_electionId];
+      Candidate[] storage candidateList = candidates[_electionId];
+      require(block.timestamp > election.startDate && block.timestamp < election.endDate, "Voting is only allowed within voting hours");
+      require(hasVoted[_electionId][msg.sender] == false, "Account has already voted in this election.");
+
+      for (uint i = 0; i < candidateList.length; i++) {
+        if (candidateList[i].id == _candidateId) {
+          candidateList[i].voteCount++;
+          hasVoted[_electionId][msg.sender] = true;
+          emit VotedEvent(_electionId, candidateList[i]);
+        }
+      }
     }
 }
