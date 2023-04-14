@@ -54,7 +54,8 @@ contract ElectoralCommission {
         string memory _name,
         string memory _postName,
         uint _startDate,
-        uint _endDate
+        uint _endDate,
+        Candidate[] memory _candidates
     ) public {
         require(
             _startDate > block.timestamp,
@@ -69,6 +70,8 @@ contract ElectoralCommission {
             "Election ending date must be later than starting date"
         );
 
+        require(_candidates.length > 1, "Election must have at least 2 candidates");
+
         electionCounter++;
 
         Election storage newElection = elections[electionCounter];
@@ -80,9 +83,13 @@ contract ElectoralCommission {
         newElection.owner = msg.sender;
         electionIds.push(electionCounter);
         emit ElectionCreatedEvent(electionCounter);
+
+        for(uint256 i = 0; i < _candidates.length; i++) {
+          addCandidate(electionCounter, _name);
+        }
     }
 
-    function addCandidate(uint256 _electionId, string memory _name) public {
+    function addCandidate(uint256 _electionId, string memory _name) internal {
         Election memory election = elections[_electionId];
         require(block.timestamp < election.startDate, "Can't add candidate after election starting date");
         require(block.timestamp < election.endDate, "Can't add candidate to an election after it is concluded");

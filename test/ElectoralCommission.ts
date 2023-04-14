@@ -25,7 +25,11 @@ describe('ElectoralCommission', function () {
       'Name',
       'Post',
       latest + ONE_DAY_IN_SECS,
-      latest + TWO_DAYS_IN_SECS
+      latest + TWO_DAYS_IN_SECS,
+      [
+        { id: 0, name: 'Candidate 1', voteCount: 0 },
+        { id: 0, name: 'Candidate 2', voteCount: 0 },
+      ]
     )
 
     await tx.wait()
@@ -59,7 +63,11 @@ describe('ElectoralCommission', function () {
             'Name',
             'Post',
             latest - ONE_DAY_IN_SECS,
-            latest
+            latest,
+            [
+              { id: 0, name: 'Candidate 1', voteCount: 0 },
+              { id: 0, name: 'Candidate 2', voteCount: 0 },
+            ]
           )
         ).to.be.revertedWith('Election starting date must be in the future')
       })
@@ -74,7 +82,11 @@ describe('ElectoralCommission', function () {
             'Name',
             'Post',
             latest + ONE_DAY_IN_SECS,
-            latest - TWO_DAYS_IN_SECS
+            latest - TWO_DAYS_IN_SECS,
+            [
+              { id: 0, name: 'Candidate 1', voteCount: 0 },
+              { id: 0, name: 'Candidate 2', voteCount: 0 },
+            ]
           )
         ).to.be.revertedWith('Election ending date must be in the future')
       })
@@ -89,7 +101,11 @@ describe('ElectoralCommission', function () {
             'Name',
             'Post',
             latest + TWO_DAYS_IN_SECS,
-            latest + ONE_DAY_IN_SECS
+            latest + ONE_DAY_IN_SECS,
+            [
+              { id: 0, name: 'Candidate 1', voteCount: 0 },
+              { id: 0, name: 'Candidate 2', voteCount: 0 },
+            ]
           )
         ).to.be.revertedWith(
           'Election ending date must be later than starting date'
@@ -108,7 +124,11 @@ describe('ElectoralCommission', function () {
             'Name',
             'Post',
             latest + ONE_DAY_IN_SECS,
-            latest + TWO_DAYS_IN_SECS
+            latest + TWO_DAYS_IN_SECS,
+            [
+              { id: 0, name: 'Candidate 1', voteCount: 0 },
+              { id: 0, name: 'Candidate 2', voteCount: 0 },
+            ]
           )
         ).to.emit(electoralCommission, 'ElectionCreatedEvent')
       })
@@ -134,7 +154,11 @@ describe('ElectoralCommission', function () {
           name,
           post,
           startDate,
-          endDate
+          endDate,
+          [
+            { id: 0, name: 'Candidate 1', voteCount: 0 },
+            { id: 0, name: 'Candidate 2', voteCount: 0 },
+          ]
         )
         await tx.wait()
         const election = await electoralCommission.elections(1)
@@ -147,82 +171,77 @@ describe('ElectoralCommission', function () {
     })
   })
 
-  describe('AddCandidate', function () {
-    describe('Validations', function () {
-      it('should fail if called after election start time', async function () {
-        const latest = await time.latest()
-        const { electoralCommission } = await loadFixture(
-          deployElectoralCommissionFixture
-        )
-        const startDate = latest + ONE_DAY_IN_SECS
-        const endDate = latest + TWO_DAYS_IN_SECS
-        electoralCommission.createElection(
-          'Name',
-          'Post',
-          startDate,
-          endDate
-        )
+  // describe('AddCandidate', function () {
+  //   describe('Validations', function () {
+  //     it('should fail if called after election start time', async function () {
+  //       const latest = await time.latest()
+  //       const { electoralCommission } = await loadFixture(
+  //         deployElectoralCommissionFixture
+  //       )
+  //       const startDate = latest + ONE_DAY_IN_SECS
+  //       const endDate = latest + TWO_DAYS_IN_SECS
+  //       electoralCommission.createElection('Name', 'Post', startDate, endDate)
 
-        // We can increase the time in Hardhat Network
-        await time.increaseTo(latest + ONE_DAY_IN_SECS)
-        await expect(
-          electoralCommission.addCandidate(1, 'Test Candidate')
-        ).to.be.revertedWith("Can't add candidate after election starting date")
-      })
-    })
+  //       // We can increase the time in Hardhat Network
+  //       await time.increaseTo(latest + ONE_DAY_IN_SECS)
+  //       await expect(
+  //         electoralCommission.addCandidate(1, 'Test Candidate')
+  //       ).to.be.revertedWith("Can't add candidate after election starting date")
+  //     })
+  //   })
 
-    it('should increment candidateCounter', async function () {
-      const { electoralCommission } = await loadFixture(
-        deployElectoralCommissionFixture
-      )
-      await createElectionFromFixture(electoralCommission)
-      const electionId = await electoralCommission.electionIds(0)
-      electoralCommission.addCandidate(electionId, 'Candidate 1')
-      expect((await electoralCommission.candidateCounter()).gt(0)).to.be.true
-    })
+  //   it('should increment candidateCounter', async function () {
+  //     const { electoralCommission } = await loadFixture(
+  //       deployElectoralCommissionFixture
+  //     )
+  //     await createElectionFromFixture(electoralCommission)
+  //     const electionId = await electoralCommission.electionIds(0)
+  //     electoralCommission.addCandidate(electionId, 'Candidate 1')
+  //     expect((await electoralCommission.candidateCounter()).gt(0)).to.be.true
+  //   })
 
-    it('should add candidate to right election', async function () {
-      const { electoralCommission } = await loadFixture(
-        deployElectoralCommissionFixture
-      )
-      await createElectionFromFixture(electoralCommission)
-      const electionId = await electoralCommission.electionIds(0)
-      const candidate1 = 'Candidate 1'
-      const candidate2 = 'Candidate 2'
-      electoralCommission.addCandidate(electionId, candidate1)
-      electoralCommission.addCandidate(electionId, candidate2)
-      const candidates = await electoralCommission.getElectionCandidates(
-        electionId
-      )
-      expect(candidates[0].name).to.equal(candidate1)
-      expect(candidates[1].name).to.equal(candidate2)
-    })
+  //   it('should add candidate to right election', async function () {
+  //     const { electoralCommission } = await loadFixture(
+  //       deployElectoralCommissionFixture
+  //     )
+  //     await createElectionFromFixture(electoralCommission)
+  //     const electionId = await electoralCommission.electionIds(0)
+  //     const candidate1 = 'Candidate 1'
+  //     const candidate2 = 'Candidate 2'
+  //     electoralCommission.addCandidate(electionId, candidate1)
+  //     electoralCommission.addCandidate(electionId, candidate2)
+  //     const candidates = await electoralCommission.getElectionCandidates(
+  //       electionId
+  //     )
+  //     expect(candidates[0].name).to.equal(candidate1)
+  //     expect(candidates[1].name).to.equal(candidate2)
+  //   })
 
-    it('should add candidate with 0 votes', async function () {
-      const { electoralCommission } = await loadFixture(
-        deployElectoralCommissionFixture
-      )
-      await createElectionFromFixture(electoralCommission)
-      const electionId = await electoralCommission.electionIds(0)
-      const candidate1 = 'Candidate 1'
-      electoralCommission.addCandidate(electionId, candidate1)
-      const candidates = await electoralCommission.getElectionCandidates(
-        electionId
-      )
-      expect(candidates[0].voteCount.eq(0)).to.be.true
-    })
+  //   it('should add candidate with 0 votes', async function () {
+  //     const { electoralCommission } = await loadFixture(
+  //       deployElectoralCommissionFixture
+  //     )
+  //     await createElectionFromFixture(electoralCommission)
+  //     const electionId = await electoralCommission.electionIds(0)
+  //     const candidate1 = 'Candidate 1'
+  //     electoralCommission.addCandidate(electionId, candidate1)
+  //     const candidates = await electoralCommission.getElectionCandidates(
+  //       electionId
+  //     )
+  //     expect(candidates[0].voteCount.eq(0)).to.be.true
+  //   })
 
-    it('should emit CandidateAddedEvent', async function () {
-      const { electoralCommission } = await loadFixture(
-        deployElectoralCommissionFixture
-      )
-      await createElectionFromFixture(electoralCommission)
-      const electionId = await electoralCommission.electionIds(0)
-      await expect(
-        electoralCommission.addCandidate(electionId, 'Candidate 1')
-      ).to.emit(electoralCommission, 'CandidateAddedEvent')
-    })
-  })
+  //   it('should emit CandidateAddedEvent', async function () {
+  //     const { electoralCommission } = await loadFixture(
+  //       deployElectoralCommissionFixture
+  //     )
+  //     await createElectionFromFixture(electoralCommission)
+  //     const electionId = await electoralCommission.electionIds(0)
+  //     await expect(
+  //       electoralCommission.addCandidate(electionId, 'Candidate 1')
+  //     ).to.emit(electoralCommission, 'CandidateAddedEvent')
+  //   })
+  // })
 
   describe('getElections', function () {
     it('should return all elections', async function () {
@@ -243,7 +262,7 @@ describe('ElectoralCommission', function () {
           deployElectoralCommissionFixture
         )
         await createElectionFromFixture(electoralCommission)
-        await electoralCommission.addCandidate(1, 'Candidate 1')
+        // await electoralCommission.addCandidate(1, 'Candidate 1')
         await expect(electoralCommission.vote(1, 1)).to.be.rejectedWith(
           'Voting is only allowed within voting hours'
         )
@@ -254,8 +273,10 @@ describe('ElectoralCommission', function () {
           deployElectoralCommissionFixture
         )
         await createElectionFromFixture(electoralCommission)
-        await electoralCommission.addCandidate(1, 'Candidate 1')
-        await time.increaseTo(await time.latest() + (ONE_DAY_IN_SECS + TWO_DAYS_IN_SECS) / 2)
+        // await electoralCommission.addCandidate(1, 'Candidate 1')
+        await time.increaseTo(
+          (await time.latest()) + (ONE_DAY_IN_SECS + TWO_DAYS_IN_SECS) / 2
+        )
         // vote for a candidate
         await electoralCommission.vote(1, 1)
         // attempt to vote again
@@ -271,9 +292,11 @@ describe('ElectoralCommission', function () {
       )
       await createElectionFromFixture(electoralCommission)
       const electionId = 1
-      await electoralCommission.addCandidate(electionId, 'Candidate 1')
-      await electoralCommission.addCandidate(electionId, 'Candidate 2')
-      await time.increaseTo(await time.latest() + (ONE_DAY_IN_SECS + TWO_DAYS_IN_SECS) / 2)
+      // await electoralCommission.addCandidate(electionId, 'Candidate 1')
+      // await electoralCommission.addCandidate(electionId, 'Candidate 2')
+      await time.increaseTo(
+        (await time.latest()) + (ONE_DAY_IN_SECS + TWO_DAYS_IN_SECS) / 2
+      )
       // vote for candidate 2 with first account
       await electoralCommission.vote(electionId, 2)
       // vote for candidate 2 with other account

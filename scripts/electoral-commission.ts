@@ -6,8 +6,8 @@ async function main() {
   const electoralCommission = await ElectoralCommission.attach(contractAddress)
   const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
   const endTime = Date.now() + ONE_YEAR_IN_SECS;
-  // const tx = await electoralCommission.createElection("Chairperson Election 2023", "Chairperson", Date.now(), endTime)
-  // const receipt = await tx.wait()
+  const tx = await electoralCommission.createElection("Chairperson Election 2023", "Chairperson", Date.now(), endTime)
+  const receipt = await tx.wait()
 
   const elections = await electoralCommission.getElections()
   console.log(elections)
