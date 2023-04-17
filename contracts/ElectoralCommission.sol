@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 struct Candidate {
     uint256 id;
@@ -24,8 +25,14 @@ struct Election {
     uint256 votesCast;
 }
 
-contract ElectoralCommission {
-    address public owner;
+struct ElectionView {
+    Election election;
+    Candidate[] candidates;
+}
+
+contract ElectoralCommission is Initializable {
+    uint256 private _value;
+    address private _admin;
     // used in creating election id
     uint public electionCounter;
     // candidate current counter
@@ -46,9 +53,12 @@ contract ElectoralCommission {
     event CandidateAddedEvent(uint256 electionId, Candidate candidate);
     event VotedEvent(uint256 electionId, Candidate candidate);
 
-    constructor() {
-        owner = msg.sender;
+    function initialize(address admin) public initializer {
+        _admin = admin;
     }
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() initializer {}
 
     function createElection(
         string memory _name,
@@ -70,7 +80,10 @@ contract ElectoralCommission {
             "Election ending date must be later than starting date"
         );
 
-        require(_candidates.length > 1, "Election must have at least 2 candidates");
+        require(
+            _candidates.length > 1,
+            "Election must have at least 2 candidates"
+        );
 
         electionCounter++;
 
@@ -84,15 +97,21 @@ contract ElectoralCommission {
         electionIds.push(electionCounter);
         emit ElectionCreatedEvent(electionCounter);
 
-        for(uint256 i = 0; i < _candidates.length; i++) {
-          addCandidate(electionCounter, _name);
+        for (uint256 i = 0; i < _candidates.length; i++) {
+            addCandidate(electionCounter, _candidates[i].name);
         }
     }
 
     function addCandidate(uint256 _electionId, string memory _name) internal {
         Election memory election = elections[_electionId];
-        require(block.timestamp < election.startDate, "Can't add candidate after election starting date");
-        require(block.timestamp < election.endDate, "Can't add candidate to an election after it is concluded");
+        require(
+            block.timestamp < election.startDate,
+            "Can't add candidate after election starting date"
+        );
+        require(
+            block.timestamp < election.endDate,
+            "Can't add candidate to an election after it is concluded"
+        );
 
         candidateCounter++;
         Candidate[] storage candidateList = candidates[_electionId];
@@ -106,12 +125,21 @@ contract ElectoralCommission {
         emit CandidateAddedEvent(_electionId, newCandidate);
     }
 
-    function getElections() public view returns (Election[] memory) {
-        Election[] memory _elections = new Election[](electionCounter);
+    function getElections() public view returns (ElectionView[] memory) {
+        ElectionView[] memory _electionViews = new ElectionView[](
+            electionCounter
+        );
         for (uint i = 0; i < electionIds.length; i++) {
-            _elections[i] = elections[electionIds[i]];
+            Election memory election = elections[electionIds[i]];
+            Candidate[] memory _candidates = candidates[election.id];
+
+            ElectionView memory electionView = ElectionView({
+                election: election,
+                candidates: _candidates
+            });
+            _electionViews[i] = electionView;
         }
-        return _elections;
+        return _electionViews;
     }
 
     function getElectionCandidates(
@@ -121,17 +149,24 @@ contract ElectoralCommission {
     }
 
     function vote(uint256 _electionId, uint256 _candidateId) public {
-      Election memory election = elections[_electionId];
-      Candidate[] storage candidateList = candidates[_electionId];
-      require(block.timestamp > election.startDate && block.timestamp < election.endDate, "Voting is only allowed within voting hours");
-      require(hasVoted[_electionId][msg.sender] == false, "Account has already voted in this election.");
+        Election memory election = elections[_electionId];
+        Candidate[] storage candidateList = candidates[_electionId];
+        require(
+            block.timestamp > election.startDate &&
+                block.timestamp < election.endDate,
+            "Voting is only allowed within voting hours"
+        );
+        require(
+            hasVoted[_electionId][msg.sender] == false,
+            "Account has already voted in this election."
+        );
 
-      for (uint i = 0; i < candidateList.length; i++) {
-        if (candidateList[i].id == _candidateId) {
-          candidateList[i].voteCount++;
-          hasVoted[_electionId][msg.sender] = true;
-          emit VotedEvent(_electionId, candidateList[i]);
+        for (uint i = 0; i < candidateList.length; i++) {
+            if (candidateList[i].id == _candidateId) {
+                candidateList[i].voteCount++;
+                hasVoted[_electionId][msg.sender] = true;
+                emit VotedEvent(_electionId, candidateList[i]);
+            }
         }
-      }
     }
 }

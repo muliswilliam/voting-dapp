@@ -5,15 +5,18 @@
   "main": "index.js",
   "scripts": {
     "test": "npx hardhat test test/ElectoralCommission.ts",
-    "deploy": "npx hardhat run scripts/deploy.ts --network sepolia",
+    "deploy": "npx hardhat run scripts/deploy-upgradeable-electoral-commission.ts --network sepolia",
+    "upgrade": "npx hardhat run scripts/upgrade-electoral-commission.ts --network sepolia",
     "run-node": "npx hardhat node",
-    "postdeploy": "cp ./artifacts/contracts/ElectoralCommission.sol/ElectoralCommission.json ../voting-frontend/contracts/ElectoralCommission.json"
+    "postdeploy": "cp ./artifacts/contracts/ElectoralCommission.sol/ElectoralCommission.json ../voting-frontend/contracts/ElectoralCommission.json",
+    "postupgrade": "cp ./artifacts/contracts/ElectoralCommission.sol/ElectoralCommission.json ../voting-frontend/contracts/ElectoralCommission.json"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+    "@openzeppelin/hardhat-upgrades": "^1.22.1",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.15.11",
     "hardhat": "^2.13.0",
@@ -21,6 +24,8 @@
     "typescript": "^5.0.3"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^4.8.3",
+    "@openzeppelin/contracts-upgradeable": "^4.8.3",
     "dotenv": "^16.0.3"
   }
 }
